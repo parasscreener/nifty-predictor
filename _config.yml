@@ -1,0 +1,5 @@
+# GitHub Pages configuration
+theme: minima
+title: "NIFTY 50 AI Prediction Dashboard"
+description: "Real-time stock market predictions using machine learning"
+show_excerpts: false
