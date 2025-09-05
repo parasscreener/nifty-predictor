@@ -1,0 +1,58 @@
+# Workflow for training models - run manually or on schedule
+name: Train NIFTY 50 Models
+
+on:
+  workflow_dispatch:
+    inputs:
+      retrain_all:
+        description: 'Retrain all models'
+        required: true
+        default: 'true'
+        type: boolean
+  schedule:
+    # Retrain models monthly on first Sunday at 2 AM UTC
+    - cron: '0 2 1 * 0'
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository  
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        cache: 'pip'
+
+    - name: Create directories
+      run: |
+        mkdir -p data models logs
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Train models
+      run: |
+        python src/train_models.py
+
+    - name: Upload trained models
+      uses: actions/upload-artifact@v4
+      with:
+        name: trained-models-${{ github.run_number }}
+        path: models/
+        retention-days: 90
+
+    - name: Create release with models
+      if: success()
+      uses: ncipollo/release-action@v1
+      with:
+        tag: "models-v${{ github.run_number }}"
+        name: "Trained Models v${{ github.run_number }}"
+        body: "Trained NIFTY 50 prediction models - RNN, LSTM, CNN\n\nGenerated: ${{ github.run_id }}"
+        artifacts: "models/*"
+        token: ${{ secrets.GITHUB_TOKEN }}
